@@ -1,6 +1,6 @@
 # backend/app/schema.py
 from pydantic import BaseModel, Field, validator
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 from enum import Enum
 from datetime import datetime
 import uuid
@@ -28,46 +28,29 @@ class FailureSeverity(str, Enum):
     CRITICAL = "critical"
 
 class Coordinates(BaseModel):
-    x: float = Field(..., description="X coordinate")
-    y: float = Field(..., description="Y coordinate")
-    z: Optional[float] = Field(None, description="Z coordinate (altitude)")
+    x: float
+    y: float
+    z: float
 
 class Waypoint(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique waypoint identifier")
-    name: str = Field(..., min_length=1, description="Waypoint name")
-    waypoint_type: WaypointType = Field(..., description="Type of waypoint")
-    coordinates: Coordinates = Field(..., description="3D coordinates")
-    altitude: Optional[float] = Field(None, ge=0, description="Altitude in meters")
-    speed_limit: Optional[float] = Field(None, ge=0, description="Speed limit at this waypoint")
-    wait_time: Optional[float] = Field(0, ge=0, description="Wait time in seconds")
-    description: Optional[str] = Field(None, description="Additional description")
-    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Additional metadata")
-
-    @validator('coordinates')
-    def validate_coordinates(cls, v):
-        if v.x < -180 or v.x > 180:
-            raise ValueError('X coordinate must be between -180 and 180')
-        if v.y < -90 or v.y > 90:
-            raise ValueError('Y coordinate must be between -90 and 90')
-        return v
+    id: str
+    name: str
+    coordinates: Coordinates
+    waypoint_type: Literal["START", "CHECKPOINT", "END"]
+    altitude: float
+    description: Optional[str] = None
 
 class FailureScenario(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique failure scenario identifier")
-    name: str = Field(..., min_length=1, description="Failure scenario name")
-    failure_types: List[FailureType] = Field(..., min_items=1, description="List of failure types for this scenario. Example: ['sensor_failure', 'communication_loss']")
-    severity: FailureSeverity = Field(..., description="Severity level of the failure")
-    affected_waypoint_ids: List[str] = Field(..., min_items=1, description="List of affected waypoint IDs")
-    probability: float = Field(..., ge=0, le=1, description="Probability of failure (0-1)")
-    duration: Optional[float] = Field(None, ge=0, description="Expected duration in seconds")
-    description: Optional[str] = Field(None, description="Detailed description of the failure")
-    mitigation_strategies: Optional[List[str]] = Field(default_factory=list, description="Possible mitigation strategies")
-    impact_score: Optional[float] = Field(None, ge=0, le=10, description="Impact score (0-10)")
-    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Additional metadata")
+    name: str
+    failure_types: List[str]
+    affected_waypoint_ids: List[str]
+    severity: Literal["low", "medium", "high"]
+    probability: float
 
-    @validator('affected_waypoint_ids')
-    def validate_waypoint_ids(cls, v):
-        if not v:
-            raise ValueError('At least one waypoint must be affected')
+    @validator("probability")
+    def prob_range(cls, v):
+        if not 0 <= v <= 1:
+            raise ValueError("Probability must be between 0 and 1")
         return v
 
 class MissionStatus(str, Enum):
@@ -78,11 +61,9 @@ class MissionStatus(str, Enum):
     CANCELLED = "cancelled"
 
 class Mission(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique mission identifier")
-    name: str = Field(..., min_length=1, description="Mission name")
-    description: Optional[str] = Field(None, description="Mission description")
-    waypoints: List[Waypoint] = Field(..., min_items=2, description="List of waypoints")
-    failure_scenarios: List[FailureScenario] = Field(default_factory=list, description="List of failure scenarios")
+    mission_name: str
+    waypoints: List[Waypoint]
+    failure_scenarios: Optional[List[FailureScenario]] = []
     status: MissionStatus = Field(MissionStatus.PLANNED, description="Current mission status")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Mission creation timestamp")
     updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")

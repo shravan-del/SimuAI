@@ -14,15 +14,35 @@ interface Waypoint {
   coordinates: Coordinates;
 }
 
+interface FailureScenario {
+  name: string;
+  failure_types: string[];
+  affected_waypoint_ids: string[];
+  severity: string;
+  probability: number;
+}
+
 interface Mission {
   name: string;
   waypoints: Waypoint[];
-  failure_scenarios: any[];
+  failure_scenarios: FailureScenario[];
 }
 
 interface Props {
   onResult: (result: any) => void;
 }
+
+const failureTypeOptions = [
+  "sensor_failure",
+  "mechanical_failure",
+  "communication_loss",
+  "weather_condition",
+  "battery_drain",
+  "gps_signal_loss",
+  "obstacle_detection"
+];
+
+const severityOptions = ["low", "medium", "high", "critical"];
 
 const MissionBuilder: React.FC<Props> = ({ onResult }) => {
   const [mission, setMission] = useState<Mission>({
@@ -32,6 +52,7 @@ const MissionBuilder: React.FC<Props> = ({ onResult }) => {
   });
   const [loading, setLoading] = useState(false);
 
+  // Waypoint handlers
   const handleAddWaypoint = () => {
     setMission(m => ({
       ...m,
@@ -58,6 +79,56 @@ const MissionBuilder: React.FC<Props> = ({ onResult }) => {
     });
   };
 
+  // Failure Scenario Handlers
+  const handleAddScenario = () => {
+    setMission(m => ({
+      ...m,
+      failure_scenarios: [
+        ...m.failure_scenarios,
+        {
+          name: "",
+          failure_types: [],
+          affected_waypoint_ids: [],
+          severity: "medium",
+          probability: 0.1
+        }
+      ]
+    }));
+  };
+
+  const handleScenarioChange = (idx: number, field: string, value: any) => {
+    setMission(m => {
+      const scenarios = [...m.failure_scenarios];
+      (scenarios[idx] as any)[field] = value;
+      return { ...m, failure_scenarios: scenarios };
+    });
+  };
+
+  const handleScenarioTypeChange = (idx: number, value: string[]) => {
+    setMission(m => {
+      const scenarios = [...m.failure_scenarios];
+      scenarios[idx].failure_types = value;
+      return { ...m, failure_scenarios: scenarios };
+    });
+  };
+
+  const handleScenarioWaypointChange = (idx: number, value: string[]) => {
+    setMission(m => {
+      const scenarios = [...m.failure_scenarios];
+      scenarios[idx].affected_waypoint_ids = value;
+      return { ...m, failure_scenarios: scenarios };
+    });
+  };
+
+  const handleRemoveScenario = (idx: number) => {
+    setMission(m => {
+      const scenarios = [...m.failure_scenarios];
+      scenarios.splice(idx, 1);
+      return { ...m, failure_scenarios: scenarios };
+    });
+  };
+
+  // Submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -107,7 +178,67 @@ const MissionBuilder: React.FC<Props> = ({ onResult }) => {
         </div>
       ))}
       <button type="button" onClick={handleAddWaypoint}>Add Waypoint</button>
-      {/* Add similar UI for failure_scenarios if needed */}
+
+      {/* --- Failure Scenarios UI --- */}
+      <h3>Failure Scenarios</h3>
+      {mission.failure_scenarios.map((sc, idx) => (
+        <div key={idx} style={{ marginBottom: 8, border: "1px solid #444", padding: 8 }}>
+          <input
+            placeholder="Scenario Name"
+            value={sc.name}
+            onChange={e => handleScenarioChange(idx, "name", e.target.value)}
+            required
+          />
+          <select
+            multiple
+            value={sc.failure_types}
+            onChange={e =>
+              handleScenarioTypeChange(
+                idx,
+                Array.from(e.target.selectedOptions, option => option.value)
+              )
+            }
+          >
+            {failureTypeOptions.map(ft => (
+              <option key={ft} value={ft}>{ft}</option>
+            ))}
+          </select>
+          <select
+            multiple
+            value={sc.affected_waypoint_ids}
+            onChange={e =>
+              handleScenarioWaypointChange(
+                idx,
+                Array.from(e.target.selectedOptions, option => option.value)
+              )
+            }
+          >
+            {mission.waypoints.map(wp => (
+              <option key={wp.id} value={wp.id}>{wp.name || wp.id}</option>
+            ))}
+          </select>
+          <select
+            value={sc.severity}
+            onChange={e => handleScenarioChange(idx, "severity", e.target.value)}
+          >
+            {severityOptions.map(sv => (
+              <option key={sv} value={sv}>{sv}</option>
+            ))}
+          </select>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            max="1"
+            value={sc.probability}
+            onChange={e => handleScenarioChange(idx, "probability", Number(e.target.value))}
+            required
+          />
+          <button type="button" onClick={() => handleRemoveScenario(idx)}>Remove</button>
+        </div>
+      ))}
+      <button type="button" onClick={handleAddScenario}>Add Failure Scenario</button>
+      <br />
       <button type="submit" disabled={loading}>Run Simulation</button>
     </form>
   );
