@@ -10,7 +10,7 @@ from app.services.export_service import generate_csv, generate_heatmap
 
 router = APIRouter()
 
-@router.post("/simulate")
+@router.post("/simulate", tags=["Simulation"])
 async def simulate_mission_endpoint(
     mission: Mission,
     num_simulations: Optional[int] = 100
@@ -75,7 +75,7 @@ async def simulate_mission_endpoint(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Simulation error: {str(e)}")
 
-@router.post("/simulate/quick")
+@router.post("/simulate/quick", tags=["Simulation"])
 async def quick_simulation_endpoint(
     mission: Mission,
     num_simulations: Optional[int] = 100
@@ -112,23 +112,22 @@ async def quick_simulation_endpoint(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Simulation error: {str(e)}")
 
-@router.get("/simulate/health")
-async def health_check() -> Dict[str, Any]:
-    """
-    Health check endpoint for the simulation service.
-    """
-    return {
-        "status": "healthy",
-        "service": "mission-simulation",
-        "version": "1.0.0"
-    }
+@router.get("/health", tags=["Utility"])
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "ok"}
 
-@router.get("/simulate/history")
+@router.get("/version", tags=["Utility"])
+async def version():
+    """API version endpoint."""
+    return {"version": "1.0.0"}
+
+@router.get("/simulate/history", tags=["Simulation"])
 async def get_history(limit: int = 20):
     """Get recent simulation runs."""
     return {"history": get_simulation_history(limit)}
 
-@router.post("/simulate/template/{name}")
+@router.post("/simulate/template/{name}", tags=["Simulation"])
 async def simulate_template(name: str, num_simulations: Optional[int] = 100):
     """Load a mission template by name and run a simulation with it."""
     try:
@@ -141,9 +140,18 @@ async def simulate_template(name: str, num_simulations: Optional[int] = 100):
     except Exception as e:
         return {"error": f"Failed to run simulation: {e}"}
 
-@router.post("/simulate/export")
+@router.post("/simulate/export", tags=["Simulation"])
 async def simulate_export(mission: Mission, num_simulations: Optional[int] = 100):
-    """Run a simulation and return CSV and heatmap HTML of detailed failures."""
+    """
+    Run a simulation and return CSV and heatmap HTML of detailed failures.
+    
+    Args:
+        mission: The mission to simulate
+        num_simulations: Number of simulation runs (default: 100)
+    
+    Returns:
+        CSV string and Plotly heatmap HTML
+    """
     results = run_comprehensive_simulation(mission, num_simulations)
     detailed_failures = results.get('detailed_failures', [])
     csv_str = generate_csv(detailed_failures)
