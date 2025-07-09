@@ -27,6 +27,8 @@ async def simulate_mission_endpoint(
     """
     try:
         # Validate simulation count
+        if num_simulations is None:
+            num_simulations = 100
         if num_simulations <= 0:
             raise HTTPException(status_code=400, detail="Number of simulations must be positive")
         if num_simulations > 1000:
@@ -43,9 +45,9 @@ async def simulate_mission_endpoint(
             "success": True,
             "simulation_config": {
                 "total_simulations": summary['total_simulations'],
-                "mission_name": mission.name,
+                "mission_name": mission.mission_name,
                 "waypoint_count": len(mission.waypoints),
-                "failure_scenario_count": len(mission.failure_scenarios)
+                "failure_scenario_count": len(mission.failure_scenarios or [])
             },
             "success_rate": {
                 "percentage": summary['success_rate_percentage'],
@@ -91,6 +93,8 @@ async def quick_simulation_endpoint(
         Simplified response with just success rate and basic failure info
     """
     try:
+        if num_simulations is None:
+            num_simulations = 100
         if num_simulations <= 0 or num_simulations > 1000:
             raise HTTPException(status_code=400, detail="Number of simulations must be between 1 and 1000")
         
@@ -133,6 +137,8 @@ async def simulate_template(name: str, num_simulations: Optional[int] = 100):
     try:
         template_data = load_mission_template(name)
         mission = Mission(**template_data)
+        if num_simulations is None:
+            num_simulations = 100
         results = run_comprehensive_simulation(mission, num_simulations)
         return results
     except FileNotFoundError as e:
@@ -152,6 +158,8 @@ async def simulate_export(mission: Mission, num_simulations: Optional[int] = 100
     Returns:
         CSV string and Plotly heatmap HTML
     """
+    if num_simulations is None:
+        num_simulations = 100
     results = run_comprehensive_simulation(mission, num_simulations)
     detailed_failures = results.get('detailed_failures', [])
     csv_str = generate_csv(detailed_failures)

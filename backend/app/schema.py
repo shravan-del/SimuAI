@@ -41,10 +41,11 @@ class Waypoint(BaseModel):
     description: Optional[str] = None
 
 class FailureScenario(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     failure_types: List[str]
     affected_waypoint_ids: List[str]
-    severity: Literal["low", "medium", "high"]
+    severity: FailureSeverity
     probability: float
 
     @validator("probability")
@@ -79,9 +80,9 @@ class Mission(BaseModel):
         
         # Check for at least one start and one end waypoint
         waypoint_types = [wp.waypoint_type for wp in v]
-        if WaypointType.START not in waypoint_types:
+        if "START" not in waypoint_types:
             raise ValueError('Mission must have at least one START waypoint')
-        if WaypointType.END not in waypoint_types:
+        if "END" not in waypoint_types:
             raise ValueError('Mission must have at least one END waypoint')
         
         return v

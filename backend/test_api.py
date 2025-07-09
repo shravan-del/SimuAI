@@ -6,7 +6,7 @@ Test script for the FastAPI simulation endpoint.
 import requests
 import json
 from datetime import datetime
-from app.schema import Mission, Waypoint, FailureScenario, WaypointType, FailureType, FailureSeverity, Coordinates
+from app.schema import Mission, Waypoint, FailureScenario, WaypointType, FailureType, FailureSeverity, Coordinates, MissionStatus
 
 def create_test_mission():
     """Create a test mission for API testing."""
@@ -14,29 +14,33 @@ def create_test_mission():
     # Create waypoints
     waypoints = [
         Waypoint(
+            id="wp-start",
             name="Start Point",
-            waypoint_type=WaypointType.START,
+            waypoint_type="START",
             coordinates=Coordinates(x=0.0, y=0.0, z=100.0),
             altitude=100.0,
             description="Mission start location"
         ),
         Waypoint(
+            id="wp-checkpoint",
             name="Checkpoint Alpha",
-            waypoint_type=WaypointType.CHECKPOINT,
+            waypoint_type="CHECKPOINT",
             coordinates=Coordinates(x=10.0, y=5.0, z=120.0),
             altitude=120.0,
             description="First checkpoint"
         ),
         Waypoint(
+            id="wp-delivery",
             name="Delivery Zone",
-            waypoint_type=WaypointType.DELIVERY,
+            waypoint_type="CHECKPOINT",
             coordinates=Coordinates(x=20.0, y=15.0, z=110.0),
             altitude=110.0,
             description="Package delivery location"
         ),
         Waypoint(
+            id="wp-end",
             name="End Point",
-            waypoint_type=WaypointType.END,
+            waypoint_type="END",
             coordinates=Coordinates(x=25.0, y=20.0, z=100.0),
             altitude=100.0,
             description="Mission end location"
@@ -46,42 +50,40 @@ def create_test_mission():
     # Create failure scenarios
     failure_scenarios = [
         FailureScenario(
+            id="fs-gps",
             name="GPS Signal Loss",
-            failure_types=[FailureType.GPS_SIGNAL_LOSS],
-            severity=FailureSeverity.HIGH,
+            failure_types=["gps_signal_loss"],
+            severity="high",
             affected_waypoint_ids=[waypoints[0].id],
-            probability=0.15,
-            description="GPS signal interference",
-            impact_score=7.0
+            probability=0.15
         ),
         FailureScenario(
+            id="fs-weather",
             name="Weather Conditions",
-            failure_types=[FailureType.WEATHER_CONDITION],
-            severity=FailureSeverity.MEDIUM,
+            failure_types=["weather_condition"],
+            severity="medium",
             affected_waypoint_ids=[waypoints[1].id],
-            probability=0.25,
-            description="Adverse weather",
-            impact_score=5.0
+            probability=0.25
         ),
         FailureScenario(
+            id="fs-battery",
             name="Battery Drain",
-            failure_types=[FailureType.BATTERY_DRAIN],
-            severity=FailureSeverity.CRITICAL,
+            failure_types=["battery_drain"],
+            severity="high",
             affected_waypoint_ids=[waypoints[2].id],
-            probability=0.05,
-            description="Critical battery drain",
-            impact_score=9.0
+            probability=0.05
         )
     ]
     
     # Create mission
     mission = Mission(
-        name="Test Delivery Mission",
-        description="A test mission for API validation",
+        mission_name="Test Delivery Mission",
         waypoints=waypoints,
         failure_scenarios=failure_scenarios,
         estimated_duration=1800.0,  # 30 minutes
-        priority=7
+        priority=7,
+        status=MissionStatus.PLANNED,
+        backup_paths=[]
     )
     
     return mission

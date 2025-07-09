@@ -43,7 +43,7 @@ def simulate_mission(mission: Mission, num_simulations: int = 100) -> MissionSim
     for waypoint in mission.waypoints:
         result.waypoint_failures[waypoint.id] = 0
     
-    for scenario in mission.failure_scenarios:
+    for scenario in (mission.failure_scenarios or []):
         for failure_type in scenario.failure_types:
             result.failure_type_counts[failure_type] = 0
         result.failure_scenarios_triggered[scenario.id] = 0
@@ -59,7 +59,7 @@ def simulate_mission(mission: Mission, num_simulations: int = 100) -> MissionSim
             # Check if any failure scenarios trigger at this waypoint
             triggered_scenarios = []
             
-            for scenario in mission.failure_scenarios:
+            for scenario in (mission.failure_scenarios or []):
                 if waypoint.id in scenario.affected_waypoint_ids:
                     # Use random probability to determine if failure occurs
                     if random.random() < scenario.probability:
@@ -173,7 +173,7 @@ def analyze_mission_risk(mission: Mission) -> Dict[str, Any]:
     for waypoint in mission.waypoints:
         waypoint_risk = 0
         affecting_scenarios = [
-            scenario for scenario in mission.failure_scenarios 
+            scenario for scenario in (mission.failure_scenarios or [])
             if waypoint.id in scenario.affected_waypoint_ids
         ]
         
@@ -226,8 +226,8 @@ def run_comprehensive_simulation(mission: Mission, num_simulations: int = 100) -
         'risk_analysis': risk_analysis,
         'detailed_failures': isoformat_dt(simulation_result.detailed_failures[:10]),  # First 10 detailed failures
         'timestamp': datetime.utcnow().isoformat(),
-        'mission_name': mission.name
+        'mission_name': mission.mission_name
     }
     # Log to DB
     log_simulation_result(result_dict)
-    return isoformat_dt(result_dict)
+    return isoformat_dt(result_dict)  # type: ignore
